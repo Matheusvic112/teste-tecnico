@@ -3,55 +3,61 @@ const pup = require("puppeteer");
 const baseUrl = "https://www.carrefour.com.br/busca/Bravecto";
 let currentPage = 1;
 
-
 const getProdutoValorVendedor = async (page) => {
-  
-try {
-  await page.waitForSelector(".carrefourbr-carrefour-components-0-x-currencyInteger");
-  const valorInteiro = await page.$eval(
-    ".carrefourbr-carrefour-components-0-x-currencyInteger",
-    (el) => el.innerHTML
-  );
+  try {
+    await page.waitForSelector(
+      ".carrefourbr-carrefour-components-0-x-currencyInteger"
+    );
+    const valorInteiro = await page.$eval(
+      ".carrefourbr-carrefour-components-0-x-currencyInteger",
+      (el) => el.innerHTML
+    );
 
-  await page.waitForSelector(".carrefourbr-carrefour-components-0-x-currencyFraction");
-  const valorFracao = await page.$eval(
-    ".carrefourbr-carrefour-components-0-x-currencyFraction",
-    (el) => el.innerHTML
-  );
+    await page.waitForSelector(
+      ".carrefourbr-carrefour-components-0-x-currencyFraction"
+    );
+    const valorFracao = await page.$eval(
+      ".carrefourbr-carrefour-components-0-x-currencyFraction",
+      (el) => el.innerHTML
+    );
 
-  let linkVendedor;
-  let linkVendedor2;
-  
+    let linkVendedor;
+    let linkVendedor2;
 
-    linkVendedor2 = await page.waitForSelector(".carrefourbr-carrefour-components-0-x-sellerLink");
+    linkVendedor2 = await page.waitForSelector(
+      ".carrefourbr-carrefour-components-0-x-sellerLink"
+    );
 
+    if (linkVendedor2) {
+      linkVendedor = await page.evaluate(
+        (el) => el.innerText || el.innerHTML,
+        linkVendedor2
+      );
+    } else {
+      console.error(
+        "Não foi possível encontrar o link do vendedor com nenhum dos seletores."
+      );
+      linkVendedor = "Não informado";
+    }
+    await page.waitForSelector(".vtex-store-components-3-x-productBrand");
 
+    const produto = await page.$eval(
+      ".vtex-store-components-3-x-productBrand",
+      (el) => el.innerText
+    );
 
-  
-  if (linkVendedor2) {
-    linkVendedor = await page.evaluate((el) => el.innerText || el.innerHTML, linkVendedor2);
-  } else {
-    console.error("Não foi possível encontrar o link do vendedor com nenhum dos seletores.");
-    linkVendedor = "Não informado";
+    return {
+      valorInteiro,
+      valorFracao,
+      linkVendedor,
+      produto,
+    };
+  } catch (error) {
+    linkVendedorEl = await page.waitForSelector(
+      ".carrefourbr-carrefour-components-0-x-carrefourSeller.b.f5"
+    );
+    throw Error(error);
   }
-  await page.waitForSelector(".vtex-store-components-3-x-productBrand");
-
-  const produto = await page.$eval(
-    ".vtex-store-components-3-x-productBrand",
-    (el) => el.innerText
-  );
-
-  return {
-    valorInteiro,
-    valorFracao,
-    linkVendedor,
-    produto,
-  };
-} catch (error) {
-  linkVendedorEl = await page.waitForSelector(".carrefourbr-carrefour-components-0-x-carrefourSeller.b.f5");
-  throw Error(error);
-
-}
 };
 
 const getAbout = async () => {
@@ -77,19 +83,20 @@ const getAbout = async () => {
       let produtoNome;
       try {
         await page.goto(link, { waitUntil: "networkidle2" });
-        
+
         const itemOffSelector =
           ".vtex-rich-text-0-x-heading.vtex-rich-text-0-x-heading--text-not-found.t-heading-1.vtex-rich-text-0-x-headingLevel1.vtex-rich-text-0-x-headingLevel1--text-not-found.vtex-rich-text-0-x-heading-level-1";
-        
+
         const itemOff = await page.$(itemOffSelector);
-    
+
         if (itemOff) {
           console.log("Item não disponível. Pulando para o próximo item.");
           await page.goBack();
           continue;
         }
-    
-        const { valorInteiro, valorFracao, linkVendedor, produto } = await getProdutoValorVendedor(page);
+
+        const { valorInteiro, valorFracao, linkVendedor, produto } =
+          await getProdutoValorVendedor(page);
         resultadoValor = `${valorInteiro},${valorFracao}`;
         vendedorValor = `${linkVendedor}`;
         produtoNome = `${produto}`;
@@ -107,11 +114,11 @@ const getAbout = async () => {
       };
 
       itens.push(itensDoCatalogo);
-      console.log(itens.length)
+      console.log(itens.length);
 
       await page.goBack();
     }
-    
+
     console.log(itens.length);
 
     const nextPageUrl = `${baseUrl}?page=${currentPage + 1}`;
